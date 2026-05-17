@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Finance Tracker</title>
+        <!-- Tailwind CSS for quick, clean styling -->
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 min-h-screen p-6">
+        <div class="max-w-4xl mx-auto space-y-6">
+            <h1 class="text-3xl font-bold text-gray-800 text-center mb-4">
+                Finance Tracker
+            </h1>
+
+            <!-- --- MONTHLY SUMMARY BANNER --- -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div
+                    class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-green-500"
+                >
+                    <p
+                        class="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                        Monthly Income
+                    </p>
+                    <p
+                        id="totalIncome"
+                        class="text-2xl font-bold text-gray-800 mt-1"
+                    >
+                        ₹0
+                    </p>
+                </div>
+                <div
+                    class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-red-500"
+                >
+                    <p
+                        class="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                        Monthly Expenses
+                    </p>
+                    <p
+                        id="totalExpense"
+                        class="text-2xl font-bold text-gray-800 mt-1"
+                    >
+                        ₹0
+                    </p>
+                </div>
+                <div
+                    id="balanceCard"
+                    class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-blue-500 transition-colors duration-300"
+                >
+                    <p
+                        class="text-sm font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                        Balance Remaining
+                    </p>
+                    <p
+                        id="netBalance"
+                        class="text-2xl font-bold text-gray-800 mt-1"
+                    >
+                        ₹0
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 1. ADD DATA FORM -->
+                <div class="bg-white p-6 rounded-lg shadow-md h-fit">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">
+                        Add New Entry
+                    </h2>
+                    <form id="addForm" class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-gray-600"
+                                >Item Name</label
+                            >
+                            <input
+                                type="text"
+                                id="item"
+                                required
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 border focus:ring-blue-500 focus:border-blue-500"
+                            />
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-gray-600"
+                                >Amount</label
+                            >
+                            <input
+                                type="number"
+                                id="amount"
+                                required
+                                step="any"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 border"
+                            />
+                        </div>
+                        <div class="flex items-center">
+                            <input
+                                type="checkbox"
+                                id="isSpending"
+                                class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                            />
+                            <label
+                                for="isSpending"
+                                class="ml-2 block text-sm text-gray-900"
+                            >
+                                Is this a spending/expense?
+                            </label>
+                        </div>
+                        <button
+                            type="submit"
+                            class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition"
+                        >
+                            Save to Sheets
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 2. FETCH & VIEW DATA -->
+                <div class="bg-white p-6 rounded-lg shadow-md flex flex-col">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-700">
+                        View Entries
+                    </h2>
+                    <div class="flex flex-col sm:flex-row gap-2 mb-4">
+                        <input
+                            type="date"
+                            id="searchDate"
+                            class="flex-1 rounded-md border-gray-300 shadow-sm p-2 bg-gray-50 border text-sm"
+                        />
+                        <div class="flex gap-2">
+                            <button
+                                id="fetchBtn"
+                                class="bg-green-600 text-white px-3 py-2 text-sm rounded-md hover:bg-green-700 transition flex-1 sm:flex-initial"
+                            >
+                                Fetch Date
+                            </button>
+                            <button
+                                id="fetchMonthBtn"
+                                class="bg-purple-600 text-white px-3 py-2 text-sm rounded-md hover:bg-purple-700 transition flex-1 sm:flex-initial"
+                            >
+                                This Month
+                            </button>
+                        </div>
+                    </div>
+
+                    <div
+                        id="loading"
+                        class="hidden text-gray-500 text-center my-4"
+                    >
+                        Loading data from Google Sheets...
+                    </div>
+
+                    <!-- Results Table -->
+                    <div class="overflow-x-auto flex-1">
+                        <table
+                            class="min-w-full divide-y divide-gray-200 text-sm"
+                        >
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th
+                                        class="px-4 py-2 text-left font-medium text-gray-500"
+                                    >
+                                        Item
+                                    </th>
+                                    <th
+                                        class="px-4 py-2 text-left font-medium text-gray-500"
+                                    >
+                                        Amount
+                                    </th>
+                                    <th
+                                        class="px-4 py-2 text-left font-medium text-gray-500"
+                                    >
+                                        Type
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody
+                                id="tableBody"
+                                class="divide-y divide-gray-200"
+                            >
+                                <tr>
+                                    <td
+                                        colspan="3"
+                                        class="px-4 py-4 text-center text-gray-400"
+                                    >
+                                        Loading initial monthly details...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            window.addEventListener("DOMContentLoaded", () => {
+                const pin = prompt("Enter Security PIN to view dashboard:");
+                if (pin === "4282") {
+                    // Replace with your pin
+                    fetchData(`${SCRIPT_URL}?month=current`, true);
+                } else {
+                    alert("Unauthorized access.");
+                    document.body.innerHTML = `<h1 class="text-center text-red-500 mt-10 font-bold">Access Denied</h1>`;
+                }
+            });
+            // REPLACE THIS WITH YOUR DEPLOYED GOOGLE APPS SCRIPT URL
+            const SCRIPT_URL =
+                "https://script.google.com/macros/s/AKfycbyMziTjJ5ykwiBeCe4uLlg9Wg6AdbNMn8fFtfitj4BoJlQ8Uvk_Nq9ZNLSWeFccHJsp/exec";
+
+            // Initialize default view to today's date
+            document.getElementById("searchDate").value = new Date()
+                .toISOString()
+                .split("T")[0];
+
+            // Run initial current month dashboard view automatically on script evaluation
+            window.addEventListener("DOMContentLoaded", () => {
+                fetchData(`${SCRIPT_URL}?month=current`, true);
+            });
+
+            // --- REUSABLE DATA RENDERING ENGINE ---
+            async function fetchData(url, updateMetrics = false) {
+                const tableBody = document.getElementById("tableBody");
+                const loading = document.getElementById("loading");
+
+                tableBody.innerHTML = "";
+                loading.classList.remove("hidden");
+
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    loading.classList.add("hidden");
+
+                    if (data.status === "error") {
+                        alert(`Backend Error: ${data.message}`);
+                        return;
+                    }
+
+                    if (data.length === 0) {
+                        tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">No records located.</td></tr>`;
+                        if (updateMetrics) calculateMetrics([]);
+                        return;
+                    }
+
+                    // Loop array and append rows
+                    data.forEach((row) => {
+                        const tr = document.createElement("tr");
+                        const isSpending =
+                            row.isSpending === true ||
+                            row.isSpending === "true";
+
+                        tr.innerHTML = `
+                            <td class="px-4 py-2 text-gray-900 font-medium">${row.item || "N/A"}</td>
+                            <td class="px-4 py-2 text-gray-700">₹${parseFloat(row.amount || 0).toLocaleString("en-IN")}</td>
+                            <td class="px-4 py-2">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isSpending ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"}">
+                                    ${isSpending ? "Expense" : "Income"}
+                                </span>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+
+                    if (updateMetrics) {
+                        calculateMetrics(data);
+                    }
+                } catch (error) {
+                    console.error("Data tracking failure:", error);
+                    loading.classList.add("hidden");
+                    alert(
+                        "Network connection error reading execution context.",
+                    );
+                }
+            }
+
+            // --- BUSINESS LOGIC: BALANCE AND LEDGER CALCULATIONS ---
+            function calculateMetrics(records) {
+                let incomeSum = 0;
+                let expenseSum = 0;
+
+                records.forEach((row) => {
+                    const amt = parseFloat(row.amount) || 0;
+                    const isExpense =
+                        row.isSpending === true || row.isSpending === "true";
+
+                    if (isExpense) {
+                        expenseSum += amt;
+                    } else {
+                        incomeSum += amt;
+                    }
+                });
+
+                const netBalance = incomeSum - expenseSum;
+
+                // UI Display Strings
+                document.getElementById("totalIncome").innerText =
+                    `₹${incomeSum.toLocaleString("en-IN")}`;
+                document.getElementById("totalExpense").innerText =
+                    `₹${expenseSum.toLocaleString("en-IN")}`;
+                document.getElementById("netBalance").innerText =
+                    `₹${netBalance.toLocaleString("en-IN")}`;
+
+                // Dynamically update visual indicator borders based on balance state
+                const balanceCard = document.getElementById("balanceCard");
+                balanceCard.className =
+                    "bg-white p-4 rounded-lg shadow-sm border-l-4 transition-colors duration-300";
+
+                if (netBalance < 0) {
+                    balanceCard.classList.add("border-red-500");
+                } else if (netBalance > 0) {
+                    balanceCard.classList.add("border-green-500");
+                } else {
+                    balanceCard.classList.add("border-blue-500");
+                }
+            }
+
+            // --- SUBMIT TRANSACTION (POST ENTRY) ---
+            document
+                .getElementById("addForm")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+
+                    const formData = {
+                        item: document.getElementById("item").value,
+                        amount:
+                            parseFloat(
+                                document.getElementById("amount").value,
+                            ) || 0,
+                        isSpending:
+                            document.getElementById("isSpending").checked,
+                    };
+
+                    try {
+                        await fetch(SCRIPT_URL, {
+                            method: "POST",
+                            mode: "no-cors",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(formData),
+                        });
+
+                        alert("Data sent successfully!");
+                        document.getElementById("addForm").reset();
+
+                        // Refresh current month dataset automatically to re-evaluate net totals
+                        fetchData(`${SCRIPT_URL}?month=current`, true);
+                    } catch (error) {
+                        console.error("Error saving data:", error);
+                        alert("Failed to save data.");
+                    }
+                });
+
+            // --- STRATEGIC INTERFACE LOOKUPS (GET HOOKS) ---
+            document
+                .getElementById("fetchBtn")
+                .addEventListener("click", () => {
+                    const dateVal = document.getElementById("searchDate").value;
+                    if (!dateVal) return alert("Please select a date");
+                    // Fetch for specific date, don't change the top monthly totals metrics card
+                    fetchData(`${SCRIPT_URL}?date=${dateVal}`, false);
+                });
+
+            document
+                .getElementById("fetchMonthBtn")
+                .addEventListener("click", () => {
+                    // Fetch full month and update top totals
+                    fetchData(`${SCRIPT_URL}?month=current`, true);
+                });
+        </script>
+    </body>
+</html>
